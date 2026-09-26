@@ -1,4 +1,5 @@
 # .NET
+.dotnet/
 *docs/
 *adr
 *.Tests

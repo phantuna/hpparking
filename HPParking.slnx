@@ -7,7 +7,5 @@
   <Project Path="HPParking/HPParking.csproj" Id="b5a76f50-afc3-436e-bd6f-add8d2079f80">
     <Platform Solution="*|x86" Project="x86" />
   </Project>
-  <Project Path="HPParking.Tests/HPParking.Tests.csproj" Id="a1b2c3d4-e5f6-7890-abcd-ef1234567890">
-    <Platform Solution="*|x86" Project="x86" />
-  </Project>
+  <Project Path="HPParking.Tests/HPParking.Tests.csproj" />
 </Solution>

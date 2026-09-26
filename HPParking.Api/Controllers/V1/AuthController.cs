@@ -51,12 +51,25 @@ namespace HPParking.Api.Controllers.V1
         [ProducesResponseType(typeof(ApiResponse<object>), 401)]
         [ProducesResponseType(typeof(ApiResponse<object>), 403)]
         [ProducesResponseType(typeof(ApiResponse<object>), 429)]
-        public async Task<IActionResult> RefreshToken()
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest? bodyRequest = null)
         {
+            var refreshTokenFromBody = bodyRequest?.RefreshToken;
             var refreshTokenFromHeader = Request.Headers["X-Refresh-Token"].FirstOrDefault();
             var refreshTokenFromCookie = Request.Cookies["hpparking_refresh_token"];
 
-            var response = await _authService.RefreshTokenAsync(refreshTokenFromHeader, refreshTokenFromCookie);
+            // Ưu tiên: Body JSON -> Cookie -> Header
+            var token = !string.IsNullOrWhiteSpace(refreshTokenFromBody)
+                ? refreshTokenFromBody
+                : (!string.IsNullOrWhiteSpace(refreshTokenFromCookie)
+                    ? refreshTokenFromCookie
+                    : refreshTokenFromHeader);
+
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return ErrorApiResponse("Refresh Token không được để trống.", null, StatusCodes.Status401Unauthorized);
+            }
+
+            var response = await _authService.RefreshTokenAsync(token, null, HttpContext.RequestAborted);
 
             // Cập nhật lại cả 2 Cookie sau khi luân chuyển (Token Rotation)
             SetAuthCookies(response.AccessToken, response.RefreshToken, response.ExpiresIn);

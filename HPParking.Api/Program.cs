@@ -2,6 +2,7 @@ using Asp.Versioning;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using HPParking.Api.Authentication;
+using HPParking.Api.BackgroundServices;
 using HPParking.Api.Configuration;
 using HPParking.Api.Data;
 using HPParking.Api.Middlewares;
@@ -19,6 +20,10 @@ using Serilog;
 using Serilog.Events;
 using System.Reflection;
 using System.Text;
+
+// Thiết lập mã hóa UTF-8 cho Console hiển thị chuẩn tiếng Việt có dấu
+Console.OutputEncoding = Encoding.UTF8;
+Console.InputEncoding = Encoding.UTF8;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -59,6 +64,7 @@ builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSet
 builder.Services.Configure<ApiKeySettings>(builder.Configuration.GetSection("ApiKeySettings"));
 builder.Services.Configure<StorageSettings>(builder.Configuration.GetSection("StorageSettings"));
 builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDb"));
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 
 // =============================================================================
 // 3. TẦNG DỮ LIỆU & REPOSITORIES (MongoDB) & SERVICES
@@ -97,6 +103,16 @@ builder.Services.AddScoped<IVehicleExcelService, VehicleExcelService>();
 builder.Services.AddScoped<IClientExcelService, ClientExcelService>();
 builder.Services.AddScoped<IMasterDataExcelService, MasterDataExcelService>();
 builder.Services.AddScoped<IReportExcelService, ReportExcelService>();
+
+// Đăng ký MemoryCache cho cơ chế khử lặp (Debounce) sự kiện UHF và cache hệ thống
+builder.Services.AddMemoryCache();
+
+// Đăng ký dịch vụ giám sát hành trình xe nâng liên cổng qua UHF & Email Template (ADR 0037)
+builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
+builder.Services.AddScoped<IEmailAlertService, EmailAlertService>();
+builder.Services.AddScoped<IVehicleTripService, VehicleTripService>();
+builder.Services.AddScoped<IUhfEventIngestionService, UhfEventIngestionService>();
+builder.Services.AddHostedService<VehicleTripTimeoutWorker>();
 
 // Cấu hình Mapster Object Mapping
 builder.Services.RegisterMapsterConfiguration();
@@ -294,8 +310,9 @@ builder.Services.AddSwaggerGen(options =>
 // =============================================================================
 var app = builder.Build();
 
-// Khởi tạo tài khoản Quản trị viên mặc định (nếu CSDL chưa có Admin)
+// Khởi tạo tài khoản Quản trị viên mặc định (nếu CSDL chưa có Admin) & Mẫu Email cảnh báo quá hạn
 await DbSeeder.SeedAdminUserAsync(app.Services);
+await DbSeeder.SeedEmailTemplatesAsync(app.Services);
 
 // 1. Exception Handling (Bắt ngoại lệ toàn cục ở tầng cao nhất)
 app.UseMiddleware<ExceptionMiddleware>();
