@@ -2,7 +2,7 @@ namespace HPParking.Api.Configuration
 {
     public class StorageSettings
     {
-        public string RootPath { get; set; } = @"C:\Users\ADMIN\Pictures\hpparking";
+        public string RootPath { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "hpparking");
         public string RequestPath { get; set; } = "/images";
         public StorageFolders Folders { get; set; } = new();
         public long MaxSizeBytes { get; set; } = 5242880; // 5MB

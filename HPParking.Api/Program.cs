@@ -59,6 +59,9 @@ builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSet
 builder.Services.Configure<ApiKeySettings>(builder.Configuration.GetSection("ApiKeySettings"));
 builder.Services.Configure<StorageSettings>(builder.Configuration.GetSection("StorageSettings"));
 builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDb"));
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+builder.Services.Configure<GateTripSettings>(builder.Configuration.GetSection("GateTripSettings"));
+builder.Services.Configure<WorkShiftSettings>(builder.Configuration.GetSection("WorkShiftSettings"));
 
 // =============================================================================
 // 3. TẦNG DỮ LIỆU & REPOSITORIES (MongoDB) & SERVICES
@@ -100,6 +103,12 @@ builder.Services.AddScoped<IVehicleExcelService, VehicleExcelService>();
 builder.Services.AddScoped<IClientExcelService, ClientExcelService>();
 builder.Services.AddScoped<IMasterDataExcelService, MasterDataExcelService>();
 builder.Services.AddScoped<IReportExcelService, ReportExcelService>();
+
+// Đăng ký dịch vụ Gửi Mail Cảnh Báo Vi Phạm & Background Worker
+builder.Services.AddSingleton<EmailAlertService>();
+builder.Services.AddSingleton<IEmailAlertService>(sp => sp.GetRequiredService<EmailAlertService>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<EmailAlertService>());
+builder.Services.AddScoped<IAttendanceAndTripAlertEvaluator, AttendanceAndTripAlertEvaluator>();
 
 // Cấu hình Mapster Object Mapping
 builder.Services.RegisterMapsterConfiguration();
@@ -333,7 +342,8 @@ app.UseMiddleware<SecurityHeadersMiddleware>();
 // 5. Phục vụ Static Files (Cấu hình động theo StorageSettings, không fix cứng đường dẫn)
 var rootPathConfig = builder.Configuration["StorageSettings:RootPath"]
     ?? builder.Configuration["StorageSettings:UploadPath"]
-    ?? @"C:\Users\ADMIN\Pictures\hpparking";
+    ///?? @"C:\Users\ADMIN\Pictures\hpparking";
+    ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "hpparking");
 var requestPathConfig = builder.Configuration["StorageSettings:RequestPath"] ?? "/images";
 
 var fullRootPath = Path.IsPathRooted(rootPathConfig)
